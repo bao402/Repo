@@ -1,0 +1,67 @@
+const express = require('express');
+const { Client } = require('discord.js-selfbot-v13');
+
+const app = express();
+const client = new Client();
+
+// Bộ nhớ tạm lưu danh sách Server Boss
+const liveServers = {
+    'full-moon': [],
+    'rip-indra': [],
+    'doughking': [],
+    'cake-prince': [],
+    'tiki-boss': [],
+    'cursed-captain': []
+};
+
+// 6 ID KÊNH NANA TV FAMILY
+const CHANNELS = {
+    'full-moon': '1545338369020665978',
+    'rip-indra': '1545319122148007966',
+    'doughking': '1545322032789585970',
+    'cake-prince': '1545327629648003112',
+    'tiki-boss': '1545330190924644393',
+    'cursed-captain': '1545330911300812861'
+};
+
+// Hàm quét trích xuất mã Job ID từ nội dung tin nhắn
+function extractJobId(text) {
+    if (!text) return null;
+    const match = text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    return match ? match[0] : null;
+}
+
+client.on('ready', () => {
+    console.log(`[TEDDY HUB] Bot đã kết nối thành công tài khoản: ${client.user.tag}`);
+});
+
+// Lắng nghe tin nhắn mới từ Discord
+client.on('messageCreate', (msg) => {
+    for (const [key, channelId] of Object.entries(CHANNELS)) {
+        if (msg.channel.id === channelId) {
+            const jobId = extractJobId(msg.content);
+            if (jobId) {
+                const exists = liveServers[key].some(s => s.JobId === jobId);
+                if (!exists) {
+                    liveServers[key].unshift({
+                        JobId: jobId,
+                        Ping: Math.floor(Math.random() * 30) + 40,
+                        TimeUpdated: new Date().toLocaleTimeString('vi-VN')
+                    });
+                    if (liveServers[key].length > 10) liveServers[key].pop();
+                }
+            }
+        }
+    }
+});
+
+// Đường dẫn API để Script Roblox gọi lấy dữ liệu
+app.get('/get-servers', (req, res) => {
+    const channel = req.query.channel;
+    res.json(liveServers[channel] || []);
+});
+
+app.listen(3000, () => console.log('API Server đang chạy ở cổng 3000...'));
+
+// ĐIỀN TOKEN DISCORD CỦA BẠN VÀO DƯỚI ĐÂY:
+client.login('THAY_TOKEN_DISCORD_CUA_BAN_VAO_DAY');
